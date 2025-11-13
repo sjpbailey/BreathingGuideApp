@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Allow app to use Bluetooth to connect to external blood pressure monitor.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>BreathingGuide reads your blood pressure and heart rate to show before/after session changes.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>BreathingGuide writes session results you choose to save (optional).</string>
+</dict>
+</plist>
