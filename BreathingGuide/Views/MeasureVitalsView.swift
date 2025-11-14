@@ -39,7 +39,7 @@ struct MeasureVitalsView: View {
                 }
             }
 
-            // Latest values currently in memory (shown even if stale)
+            // Latest values currently in memory (shown even if stale or missing)
             VStack(spacing: 10) {
                 line(title: "Systolic",  value: bpPartString(healthKitManager.latestSystolic))
                 line(title: "Diastolic", value: bpPartString(healthKitManager.latestDiastolic))
@@ -75,8 +75,9 @@ struct MeasureVitalsView: View {
                 }
                 .disabled(isRefreshing)
 
+                // ✅ Always allow starting the breathing exercise
                 Button {
-                    // Freeze whatever is currently in memory (fresh or stale)
+                    // Freeze whatever is currently in memory (fresh, stale, or nil)
                     startSys = healthKitManager.latestSystolic
                     startDia = healthKitManager.latestDiastolic
                     startHR  = healthKitManager.latestHeartRate
@@ -86,19 +87,19 @@ struct MeasureVitalsView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(canStart ? Color.green : Color.gray)
+                        .background(Color.green)
                         .foregroundColor(.white)
                         .cornerRadius(12)
                 }
-                .disabled(!canStart)
+                // ⬆️ No .disabled() here anymore
             }
             .padding(.horizontal)
 
             Spacer()
 
-            // Clear guidance: take a fresh measurement in BP app first
-            Text("Tip: Take a fresh BP in your cuff app, then tap **Refresh Vitals** here before starting for best accuracy.")
-                .font(.footnote)
+            // Clear guidance: BP is optional, HR is optional.
+            Text("Tip: For the most complete picture, take a fresh BP in your cuff app and a heart rate reading, then tap **Refresh Vitals** before starting. If you don’t track BP, you can still use the breathing exercise with heart rate or no vitals at all.")
+                .font(.footnote) // we can bump this to .body later if you want it bigger
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -112,10 +113,10 @@ struct MeasureVitalsView: View {
             BreathingSessionView(
                 healthKitManager: healthKitManager,
                 totalSessionSeconds: Int(minutes) * 60,
-                // ✅ Use the SAME values you show on this screen:
-                beforeSystolic: healthKitManager.latestSystolic,
-                beforeDiastolic: healthKitManager.latestDiastolic,
-                beforeHeartRate: healthKitManager.latestHeartRate,
+                // ✅ Use the frozen values if we captured them, otherwise whatever is in memory (can be nil)
+                beforeSystolic: startSys ?? healthKitManager.latestSystolic,
+                beforeDiastolic: startDia ?? healthKitManager.latestDiastolic,
+                beforeHeartRate: startHR ?? healthKitManager.latestHeartRate,
                 staleOnLaunch: !didRefreshThisLaunch
             )
         }
@@ -126,15 +127,9 @@ struct MeasureVitalsView: View {
 
     // MARK: - Helpers
 
+    // We keep this for now in case we want logic later, but it always returns true
     private var canStart: Bool {
-        // Allow start only when we have *some* values in memory
-        if let s = healthKitManager.latestSystolic,
-           let d = healthKitManager.latestDiastolic,
-           let h = healthKitManager.latestHeartRate,
-           s > 0, d > 0, h > 0 {
-            return true
-        }
-        return false
+        true
     }
 
     private func refreshVitals() {
@@ -149,7 +144,7 @@ struct MeasureVitalsView: View {
                     self.isRefreshing = false
                     self.didRefreshThisLaunch = true   // user explicitly refreshed
 
-                    // ✅ Capture the “before” readings immediately
+                    // Capture the “before” readings immediately after refresh
                     self.startSys = healthKitManager.latestSystolic
                     self.startDia = healthKitManager.latestDiastolic
                     self.startHR  = healthKitManager.latestHeartRate
@@ -159,7 +154,12 @@ struct MeasureVitalsView: View {
     }
 
     private func line(title: String, value: String) -> some View {
-        HStack { Text(title + ":"); Spacer(); Text(value).bold() }.font(.title2)
+        HStack {
+            Text(title + ":")
+            Spacer()
+            Text(value).bold()
+        }
+        .font(.title2)
     }
 
     private func bpPartString(_ v: Double?) -> String {
